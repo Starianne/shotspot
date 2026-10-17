@@ -12,3 +12,66 @@
     text-align: center;
     background-color: #f6f5f0;
 }
+
+#pinpoint {
+    padding: 0.6rem 1.2rem;
+    border: 0;
+    border-radius: 0.4rem;
+    background-color: #2f65ad;
+    color: white;
+    cursor: pointer;
+}
+
+#pinpoint:hover {
+    background-color: #234f8b;
+}
+
+.image-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.image-popup[hidden] {
+    display: none;
+}
+
+.image-popup__content {
+    position: relative;
+    width: min(90vw, 700px);
+    max-height: 90vh;
+    padding: 3rem 1rem 1rem;
+    overflow-y: auto;
+    border-radius: 0.5rem;
+    background: white;
+}
+
+.image-popup__close {
+    position: absolute;
+    top: 0.75rem;
+    right: 1rem;
+    border: 0;
+    background: transparent;
+    color: #333;
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.image-popup__images {
+    display: grid;
+    gap: 1rem;
+}
+
+.image-popup__images img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0.35rem;
+}
+
