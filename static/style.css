@@ -1,30 +1,249 @@
-#titleDiv {
-    text-align: center;
-    background-color: #6194d6;
+@font-face {
+    font-family: "Chunky";
+    src: url("fonts/ChunkypufflyRegular.otf") format("opentype");
+    font-weight: normal;
+    font-style: normal;
 }
+
+:root {
+    --sky-top: #bfefff;
+    --sky-bottom: #f2fcff;
+    --aqua: #35c8f0;
+    --ocean: #1a7fd4;
+    --deep: #0b4f9e;
+    --grass: #8be04e;
+    --glass: rgba(255, 255, 255, 0.55);
+    --glass-edge: rgba(255, 255, 255, 0.9);
+    --ink: #0b4f9e;
+}
+
+/* Page background: bright sky fading to a pale horizon */
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Chunky", "Trebuchet MS", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background:
+        radial-gradient(ellipse 60% 25% at 20% 8%, rgba(255, 255, 255, 0.9), transparent 70%),
+        radial-gradient(ellipse 50% 20% at 80% 15%, rgba(255, 255, 255, 0.7), transparent 70%),
+        linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 60%, #e8fbd6 100%);
+    background-attachment: fixed;
+}
+
+
+/* ---------- Hero ---------- */
+
+#titleDiv {
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    background-size: 100% 100%;
+    background-position: 0px 0px,0px 0px,0px 0px,0px 0px,0px 0px,0px 0px,0px 0px,0px 0px,0px 0px,0px 0px,0px 0px;
+    background-image: radial-gradient(18% 28% at 24% 50%, #CEFAFFFF 7%, #073AFF00 100%),radial-gradient(18% 28% at 35% 65%, #E2FF659C 6%, #073AFF00 100%),radial-gradient(70% 53% at 36% 76%, #73F2FFFF 0%, #073AFF00 100%),radial-gradient(42% 53% at 15% 94%, #FFFFFFFF 7%, #073AFF00 100%),radial-gradient(42% 53% at 34% 72%, #FFFFFFFF 7%, #073AFF00 100%),radial-gradient(18% 28% at 35% 87%, #FFFFFFFF 7%, #073AFF00 100%),radial-gradient(31% 43% at 7% 98%, #FFFFFFFF 24%, #073AFF00 100%),radial-gradient(21% 37% at 72% 23%, #D3FF6D9C 24%, #073AFF00 100%),radial-gradient(35% 56% at 91% 74%, #8A4FFFF5 9%, #073AFF00 100%),radial-gradient(74% 86% at 67% 38%, #6DFFAEF5 24%, #073AFF00 100%),linear-gradient(125deg, #4EB5FFFF 1%, #4C00FCFF 100%);
+    height: 60vh;
+    width: 100vw;
+    display: flex;
+    border-bottom: 4px solid var(--glass-edge);
+    border-radius: 0 0 50% 50% / 0 0 12vh 12vh;
+    box-shadow:
+        0 12px 30px rgba(26, 127, 212, 0.35),
+        inset 0 -20px 40px rgba(255, 255, 255, 0.35);
+}
+
+/* Glossy "glass" sheen across the top half of the hero */
+#titleDiv::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.55) 0%,
+        rgba(255, 255, 255, 0.15) 100%
+    );
+    border-radius: 0 0 60% 60% / 0 0 100% 100%;
+    pointer-events: none;
+}
+
+/* Floating bubbles */
+#titleDiv::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9) 0 6%, rgba(255,255,255,0.15) 40%, rgba(255,255,255,0.05) 70%, transparent 71%) 12% 70% / 9vw 9vw no-repeat,
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9) 0 6%, rgba(255,255,255,0.15) 40%, rgba(255,255,255,0.05) 70%, transparent 71%) 78% 22% / 6vw 6vw no-repeat,
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9) 0 6%, rgba(255,255,255,0.15) 40%, rgba(255,255,255,0.05) 70%, transparent 71%) 90% 75% / 11vw 11vw no-repeat,
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9) 0 6%, rgba(255,255,255,0.15) 40%, rgba(255,255,255,0.05) 70%, transparent 71%) 55% 12% / 4vw 4vw no-repeat;
+}
+
+#titleDiv h1 {
+    position: relative;
+    z-index: 1;
+    font-family: "Chunky", sans-serif;
+    font-size: 10vw;
+    margin-left: 5vw;
+    margin-top: 30vh;
+    font-weight: 400;
+    color: #fff;
+    text-shadow:
+        0 2px 0 rgba(26, 127, 212, 0.6),
+        0 4px 0 rgba(11, 79, 158, 0.35),
+        0 8px 20px rgba(11, 79, 158, 0.55),
+        0 0 30px rgba(255, 255, 255, 0.8);
+}
+
+
+/* ---------- Glossy aqua button ---------- */
+
+.btn {
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    width: 10vw;
+    min-width: 8rem;
+    height: 10vh;
+    min-height: 3rem;
+    border-radius: 5vw;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    color: #fff;
+    display: flex;
+    font-family: "Chunky", sans-serif;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem auto;
+    text-shadow: 0 1px 2px rgba(11, 79, 158, 0.7);
+    background: linear-gradient(180deg, #6fdcff 0%, var(--aqua) 45%, var(--ocean) 55%, #3fb0f0 100%);
+    box-shadow:
+        0 6px 14px rgba(11, 79, 158, 0.4),
+        inset 0 -4px 8px rgba(255, 255, 255, 0.35),
+        inset 0 2px 4px rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+}
+
+/* Top gloss highlight */
+.btn::before {
+    content: "";
+    position: absolute;
+    top: 3%;
+    left: 6%;
+    right: 6%;
+    height: 45%;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.15));
+    pointer-events: none;
+}
+
+.btn:hover {
+    filter: brightness(1.08) saturate(1.1);
+}
+
+.btn:active {
+    transform: translateY(2px);
+    box-shadow:
+        0 2px 6px rgba(11, 79, 158, 0.4),
+        inset 0 3px 8px rgba(11, 79, 158, 0.35);
+}
+
+
+/* ---------- Map section ---------- */
 
 #mapDisplayDiv {
     text-align: center;
-    background-color: #f6f5f0;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    width: min(92vw, 900px);
+    border-radius: 1.5rem;
+    background: var(--glass);
+    border: 2px solid var(--glass-edge);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow:
+        0 10px 30px rgba(26, 127, 212, 0.25),
+        inset 0 2px 6px rgba(255, 255, 255, 0.9);
 }
 
 #imagegooglemaps {
     text-align: center;
-    background-color: #f6f5f0;
+    margin: 2rem auto;
+    padding: 1rem;
+    width: min(92vw, 900px);
+    border-radius: 1.5rem;
+    background: var(--glass);
+    border: 2px solid var(--glass-edge);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow:
+        0 10px 30px rgba(26, 127, 212, 0.25),
+        inset 0 2px 6px rgba(255, 255, 255, 0.9);
 }
 
+#imagegooglemaps img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 1rem;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(11, 79, 158, 0.3);
+}
+
+
+/* ---------- Pinpoint button (green "go" gel button) ---------- */
+
 #pinpoint {
-    padding: 0.6rem 1.2rem;
-    border: 0;
-    border-radius: 0.4rem;
-    background-color: #2f65ad;
-    color: white;
+    position: relative;
+    overflow: hidden;
+    padding: 0.7rem 1.6rem;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    border-radius: 999px;
+    font-family: "Chunky", sans-serif;
+    font-size: 1.1rem;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(20, 100, 20, 0.7);
+    background: linear-gradient(180deg, #c6f58f 0%, var(--grass) 45%, #3fae2a 55%, #7fd24a 100%);
+    box-shadow:
+        0 5px 12px rgba(40, 120, 30, 0.4),
+        inset 0 -3px 6px rgba(255, 255, 255, 0.35),
+        inset 0 2px 4px rgba(255, 255, 255, 0.8);
     cursor: pointer;
 }
 
-#pinpoint:hover {
-    background-color: #234f8b;
+#pinpoint::before {
+    content: "";
+    position: absolute;
+    top: 4%;
+    left: 8%;
+    right: 8%;
+    height: 45%;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.15));
+    pointer-events: none;
 }
+
+#pinpoint:hover {
+    filter: brightness(1.08) saturate(1.1);
+}
+
+#pinpoint:active {
+    transform: translateY(2px);
+    box-shadow:
+        0 2px 5px rgba(40, 120, 30, 0.4),
+        inset 0 3px 8px rgba(20, 90, 20, 0.35);
+}
+
+#pinpoint:focus-visible,
+.btn:focus-visible,
+.image-popup__close:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 6px var(--aqua);
+}
+
+
+/* ---------- Image popup (frosted glass window) ---------- */
 
 .image-popup {
     position: fixed;
@@ -34,7 +253,9 @@
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    background: rgba(0, 0, 0, 0.7);
+    background: radial-gradient(circle at 50% 30%, rgba(53, 200, 240, 0.45), rgba(11, 79, 158, 0.65));
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 .image-popup[hidden] {
@@ -47,20 +268,47 @@
     max-height: 90vh;
     padding: 3rem 1rem 1rem;
     overflow-y: auto;
-    border-radius: 0.5rem;
-    background: white;
+    border-radius: 1.5rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(225, 247, 255, 0.85) 100%);
+    border: 3px solid #fff;
+    box-shadow:
+        0 20px 50px rgba(11, 79, 158, 0.5),
+        inset 0 2px 8px rgba(255, 255, 255, 1);
+}
+
+/* Window title-bar gloss */
+.image-popup__content::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.6rem;
+    border-radius: 1.4rem 1.4rem 0 0;
+    background: linear-gradient(180deg, #8fe6ff 0%, var(--aqua) 50%, var(--ocean) 100%);
+    pointer-events: none;
 }
 
 .image-popup__close {
     position: absolute;
-    top: 0.75rem;
-    right: 1rem;
-    border: 0;
-    background: transparent;
-    color: #333;
-    font-size: 1.8rem;
+    z-index: 1;
+    top: 0.3rem;
+    right: 0.75rem;
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #ff9a8a 0%, #e8392b 55%, #c21f12 100%);
+    color: #fff;
+    font-size: 1.2rem;
     line-height: 1;
+    text-shadow: 0 1px 2px rgba(120, 0, 0, 0.7);
+    box-shadow: 0 2px 6px rgba(120, 0, 0, 0.4), inset 0 1px 3px rgba(255, 255, 255, 0.7);
     cursor: pointer;
+}
+
+.image-popup__close:hover {
+    filter: brightness(1.12);
 }
 
 .image-popup__images {
@@ -72,6 +320,7 @@
     display: block;
     width: 100%;
     height: auto;
-    border-radius: 0.35rem;
+    border-radius: 1rem;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(11, 79, 158, 0.3);
 }
-
