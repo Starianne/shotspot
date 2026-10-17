@@ -1,0 +1,2 @@
+# shotspot
+ONLY TO BE USED IN HUNGARY
