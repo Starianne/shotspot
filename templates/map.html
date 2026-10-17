@@ -10,3 +10,667 @@
     <p>Hello this will have the map</p>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#43c3f0">
+  <title>Random map</title>
+  <style>
+    html, body { height: 100%; margin: 0; overflow: hidden; background: #43c3f0; font-family: "Segoe UI", Frutiger, "Myriad Pro", "Helvetica Neue", Arial, sans-serif; }
+    #map { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    #map.dragging { cursor: grabbing; }
+
+    button { border: 0; background: none; padding: 0; cursor: pointer; display: grid; place-items: center; font: inherit; }
+    button:focus-visible { outline: 2px solid #fff; box-shadow: 0 0 0 4px rgba(0,140,220,.65); }
+    svg { width: 22px; height: 22px; fill: currentColor; }
+
+    /* Frosted glass with the classic glossy split */
+    .glass {
+      background: linear-gradient(180deg, rgba(255,255,255,.95) 0%, rgba(236,249,255,.82) 48%, rgba(190,232,252,.72) 52%, rgba(226,247,255,.9) 100%);
+      border: 1px solid rgba(255,255,255,.95);
+      box-shadow: 0 6px 18px rgba(0,98,160,.38), 0 0 0 1px rgba(30,130,190,.28), inset 0 1px 0 #fff, inset 0 -8px 14px rgba(120,210,245,.35);
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    }
+
+    /* Glossy orb buttons */
+    .orb {
+      position: relative; overflow: hidden; color: #fff; border-radius: 50%;
+      background: linear-gradient(180deg, #7fdcff 0%, #2db1f0 48%, #0c8ad8 52%, #33bdf5 100%);
+      border: 1px solid #0a76b8;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,.9), 0 2px 6px rgba(0,80,150,.5);
+    }
+    .orb::before {
+      content: ''; position: absolute; left: 12%; right: 12%; top: 3%; height: 46%;
+      border-radius: 50% 50% 40% 40% / 100% 100% 60% 60%;
+      background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,255,255,.1)); pointer-events: none;
+    }
+    .orb svg { position: relative; filter: drop-shadow(0 1px 1px rgba(0,50,110,.65)); }
+    .orb:hover { filter: brightness(1.08) saturate(1.1); }
+    .orb:active { filter: brightness(.94); }
+    .orb.green { background: linear-gradient(180deg, #c6f67a 0%, #6fd23a 48%, #34a81f 52%, #69d03d 100%); border-color: #2b8f1b; }
+
+    #search {
+      position: fixed; top: 12px; left: 12px; width: min(400px, calc(100% - 24px)); height: 52px; box-sizing: border-box;
+      border-radius: 26px; display: flex; align-items: center; gap: 4px; padding: 0 6px;
+    }
+    #menu { width: 40px; height: 40px; border-radius: 50%; color: #1b7fb8; flex: none; }
+    #menu:hover { background: rgba(255,255,255,.7); }
+    #go { width: 40px; height: 40px; flex: none; }
+    #q { flex: 1; min-width: 0; border: 0; outline: 0; font: 400 16px "Segoe UI", Frutiger, "Myriad Pro", "Helvetica Neue", Arial, sans-serif; color: #14425f; background: none; padding: 0 4px; }
+    #q::placeholder { color: #6d9db8; }
+
+    #controls { position: fixed; right: 12px; bottom: 40px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    #locate { width: 46px; height: 46px; }
+    #zoomgroup { border-radius: 28px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+    #zoomgroup .orb { width: 42px; height: 42px; }
+
+    #foot {
+      position: fixed; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px;
+      padding: 3px 12px; font-size: 11px; color: #1f5d80; border-radius: 12px 0 0 0;
+      background: rgba(255,255,255,.72); border-top: 1px solid #fff; border-left: 1px solid #fff;
+      box-shadow: 0 0 10px rgba(0,98,160,.25); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    #bar { border: 1px solid #1f5d80; border-top: 0; text-align: center; line-height: 11px; }
+  </style>
+</head>
+<body>
+  <canvas id="map"></canvas>
+
+  <form id="search" class="glass" autocomplete="off">
+    <button type="button" id="menu" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+    <input id="q" placeholder="Search woods, park, statue…" aria-label="Search this map">
+    <button type="submit" id="go" class="orb" aria-label="Search"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
+  </form>
+
+  <div id="controls">
+    <button id="locate" class="orb green" aria-label="Back to start"><svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg></button>
+    <div id="zoomgroup" class="glass">
+      <button id="zin" class="orb" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+      <button id="zout" class="orb" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></button>
+    </div>
+  </div>
+
+  <div id="foot"><span>Map data ©2026 Random</span><span id="bar"></span></div>
+
+  <script>
+    const canvas = document.getElementById('map');
+    const ctx = canvas.getContext('2d');
+    const TAU = Math.PI * 2;
+
+    const C = {
+      sea: '#3cc4f0', shallow: '#9af0f8', sand: '#fff0b5',
+      town: '#e3f4fc', plaza: '#d3edfb', meadow: '#c9f09a', forest: '#86cc62', park: '#aae87e', water: '#3cc6f2',
+      buildingEdge: '#7fbfdf', text: '#3a6e8f', waterText: '#0a62a0', greenText: '#1c7a2f'
+    };
+    const BUILDING = ['#c9e8f9', '#bde2f6', '#d6effc'];
+    const ROAD_EDGE = ['#b9def0', '#f5b942', '#e8dba0'];   // street, main road, footpath
+    const ROAD_FILL = ['#ffffff', '#ffe58a', '#fff8dc'];
+    const ROAD_W = [{ edge: 14, fill: 11 }, { edge: 19, fill: 15 }, { edge: 7, fill: 5 }];
+
+    const S = 170;                       // size of a block
+    const R = 2250;                      // radius of the island
+    const MIN_ZOOM = 0.4, MAX_ZOOM = 2.5;
+    let W = 0, H = 0, dpr = 1;
+    let ox = 0, oy = 0;                  // map position of the top-left corner of the screen
+    let zoom = 1;
+
+    // Same inputs always give the same "random" number, so the map never changes
+    function rand(a, b, seed) {
+      let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(seed | 0, 1274126177);
+      h = Math.imul(h ^ (h >>> 15), 2246822519);
+      h = Math.imul(h ^ (h >>> 13), 3266489917);
+      h ^= h >>> 16;
+      return (h >>> 0) / 4294967296;
+    }
+    const pick = (list, a, b, seed) => list[Math.floor(rand(a, b, seed) * list.length)];
+
+    const FIRST = ['Maple','Oak','Cedar','Elm','Pine','Willow','Birch','Hill','River','Lake','Church','Station','Mill','High','King','Queen','Bridge','Market','Orchard','Harbor','Sunset','Highland','Meadow','Garden','Union','Prospect','Spring','Forest'];
+    const SUFFIX = ['St','Ave','Rd','Lane','Way','Drive'];
+    const POIS = [
+      { n: 'Corner Café', c: '#e8710a' }, { n: 'City Library', c: '#4285f4' },
+      { n: 'Green Grocer', c: '#e8710a' }, { n: 'Bus Station', c: '#1a73e8' },
+      { n: 'Town Hall', c: '#5f6368' }, { n: 'Fitness Club', c: '#1e8e3e' },
+      { n: 'Pharmacy', c: '#ea4335' }, { n: 'Post Office', c: '#d93025' }
+    ];
+    const roadName = (n, seed) => pick(FIRST, n, 0, seed) + ' ' + pick(SUFFIX, n, 1, seed);
+
+    // Road grid: vertical road i and horizontal road j (slightly wobbly)
+    const roadX = i => i * S + (rand(i, 0, 1) - 0.5) * 70;
+    const roadY = j => j * S + (rand(0, j, 2) - 0.5) * 70;
+    const cellMid = (i, j) => [(roadX(i) + roadX(i + 1)) / 2, (roadY(j) + roadY(j + 1)) / 2];
+    function cellRect(i, j) {
+      const x = roadX(i) - ox, y = roadY(j) - oy;
+      return { x, y, w: roadX(i + 1) - roadX(i), h: roadY(j + 1) - roadY(j) };
+    }
+
+    // --- Where things are on the island (centre x, centre y, radius) ---
+    const TOWN = { x: 85, y: 85, r: 630 };
+    const FOREST = { x: -1275, y: -750, r: 840 };
+    const PARK = { x: 1105, y: -595, r: 510 };
+    const LAKE = { x: -510, y: 1275, r: 360 };
+    const PLAZA = [0, 0];            // the statue
+    const POND = [6, -4];            // pond in the park (centre of the park)
+    const CABIN = [-8, -5];          // cabin in the forest (centre of the forest)
+
+    const zoneCache = new Map();
+    function zoneOf(i, j) {
+      const key = (i + 4000) * 8192 + (j + 4000);
+      let z = zoneCache.get(key);
+      if (z) return z;
+      const cx = (i + 0.5) * S, cy = (j + 0.5) * S;
+      const n = (rand(i, j, 12) - 0.5) * 100;     // ragged edges
+      const d = a => Math.hypot(cx - a.x, cy - a.y);
+      if (Math.hypot(cx, cy) > R + S * 0.7) z = 'out';
+      else if (i === PLAZA[0] && j === PLAZA[1]) z = 'plaza';
+      else if (d(PARK) < PARK.r + n * 0.5) z = 'park';
+      else if (d(FOREST) < FOREST.r + n) z = 'forest';
+      else if (d(LAKE) < LAKE.r + n * 0.5) z = 'lake';
+      else if (d(TOWN) < TOWN.r + n) z = 'town';
+      else z = 'meadow';
+      zoneCache.set(key, z);
+      return z;
+    }
+    const isTown = z => z === 'town' || z === 'plaza';
+
+    // What kind of road runs between two cells? -1 none, 0 street, 1 main road, 2 footpath
+    function segKind(z1, z2, main, r) {
+      if (z1 === 'out' || z2 === 'out') return -1;
+      if (z1 === 'lake' && z2 === 'lake') return -1;
+      if (main) return 1;
+      if (isTown(z1) || isTown(z2)) return r < 0.92 ? 0 : -1;
+      if (z1 === 'park' || z2 === 'park') return r < 0.85 ? (z1 === z2 ? 2 : 0) : -1;
+      if (z1 === 'forest' && z2 === 'forest') return r < 0.3 ? 2 : -1;
+      if (z1 === 'forest' || z2 === 'forest') return r < 0.4 ? 2 : -1;
+      if (z1 === 'lake' || z2 === 'lake') return r < 0.6 ? 0 : -1;
+      return r < 0.2 ? 2 : -1;
+    }
+    const segV = (i, j) => segKind(zoneOf(i - 1, j), zoneOf(i, j), i === 0, rand(i, j, 4));
+    const segH = (i, j) => segKind(zoneOf(i, j - 1), zoneOf(i, j), j === 0, rand(i, j, 5));
+
+    // --- Landmarks (used for labels and the search box) ---
+    const statue = { key: 'statue plaza', name: "Founders' Statue", at: cellMid(PLAZA[0], PLAZA[1]), dy: 74, color: '#2b5f82', halo: 'rgba(255,255,255,.92)', font: '500', size: 12 };
+    const LANDMARKS = [
+      statue,
+      { key: 'forest woods', name: 'Whispering Woods', at: cellMid(CABIN[0], CABIN[1]), dy: -90, color: C.greenText, halo: 'rgba(255,255,255,.8)', font: 'italic 500', size: 14 },
+      { key: 'park pond', name: 'Willow Park', at: cellMid(POND[0], POND[1]), dy: 0.3 * S + 18, color: '#17852f', halo: 'rgba(255,255,255,.8)', font: '500', size: 13 },
+      { key: 'lake water', name: 'Mirror Lake', at: [LAKE.x, LAKE.y], dy: 0, belowPin: true, color: C.waterText, halo: 'rgba(255,255,255,.55)', font: 'italic 500', size: 14 },
+      { key: 'cabin ranger', name: 'Ranger Cabin', at: cellMid(CABIN[0], CABIN[1]), dy: 30, color: '#7a4a22', halo: 'rgba(231,255,206,.92)', font: '500', size: 11 }
+    ];
+
+    function rr(x, y, w, h, r) {
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+    }
+    function disc(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); }
+
+    // Pass 1: ground colour of every cell
+    function drawGround(i0, i1, j0, j1) {
+      for (let i = i0; i <= i1; i++) {
+        for (let j = j0; j <= j1; j++) {
+          const z = zoneOf(i, j);
+          if (z === 'out') continue;
+          const { x, y, w, h } = cellRect(i, j);
+          ctx.fillStyle = C[z === 'lake' ? 'water' : z];
+          ctx.fillRect(x - 0.5, y - 0.5, w + 1, h + 1);
+        }
+      }
+    }
+
+    // --- Trees ---
+    const LEAF = [['#2e9e3a', '#4cc24a', '#8cf070'], ['#2a9548', '#46b95a', '#86e68a'], ['#3aa832', '#5acb3e', '#a4f27a']];
+    const PINE = ['#157a55', '#22a06b', '#58d69a'];
+
+    function drawTree(px, py, r, pine, s, simple) {
+      if (simple) {                                  // cheap version when zoomed far out
+        ctx.fillStyle = pine ? PINE[1] : LEAF[Math.floor(s * 3)][1];
+        disc(px, py, r);
+        return;
+      }
+      ctx.fillStyle = 'rgba(10,90,50,.2)';             // shadow
+      ctx.beginPath(); ctx.ellipse(px + r * 0.3, py + r * 0.4, r * 1.02, r * 0.85, 0, 0, TAU); ctx.fill();
+      if (pine) {
+        ctx.fillStyle = PINE[0]; disc(px, py, r);
+        ctx.fillStyle = PINE[1]; disc(px, py, r * 0.7);
+        ctx.fillStyle = PINE[2]; disc(px - r * 0.12, py - r * 0.15, r * 0.34);
+      } else {
+        const g = LEAF[Math.floor(s * 3)];
+        ctx.fillStyle = g[0]; disc(px, py, r);
+        ctx.fillStyle = g[1];
+        for (let k = 0; k < 3; k++) {
+          const a = s * 97 + k * 2.09;
+          disc(px + Math.cos(a) * r * 0.42, py + Math.sin(a) * r * 0.42, r * 0.6);
+        }
+        ctx.fillStyle = g[2]; disc(px - r * 0.25, py - r * 0.3, r * 0.33);
+      }
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; disc(px - r * 0.32, py - r * 0.38, r * 0.13);   // glossy highlight
+    }
+
+    // Trees for one cell: how many, how big, how likely to be a pine
+    const TREES = { forest: [28, 8, 4.5, 0.45], park: [7, 7, 3, 0.1], meadow: [3, 7, 3, 0.1] };
+    function cellTrees(i, j, z, x, y, w, h) {
+      const [count, minR, varR, pineChance] = TREES[z];
+      const simple = zoom < 0.65;
+      const edge = z === 'forest' ? 0 : 12;           // keep park and meadow trees off the road edges
+      for (let k = 0; k < count; k++) {
+        const px = x + edge + rand(i, j, 100 + k) * (w - 2 * edge);
+        const py = y + edge + rand(i, j, 200 + k) * (h - 2 * edge);
+        const r = (minR + rand(i, j, 300 + k) * varR) * (simple ? 1.2 : 1);
+        drawTree(px, py, r, rand(i, j, 400 + k) < pineChance, rand(i, j, 500 + k), simple);
+      }
+    }
+
+    // Pass 2: trees, buildings, flowers and farmhouses
+    function drawFeatures(i0, i1, j0, j1) {
+      const outline = zoom >= 0.6;
+      const m = 14;
+      for (let i = i0; i <= i1; i++) {
+        for (let j = j0; j <= j1; j++) {
+          const z = zoneOf(i, j);
+          if (z === 'out' || z === 'plaza') continue;
+          const { x, y, w, h } = cellRect(i, j);
+          if (z === 'lake') {
+            for (let k = 0; k < 2; k++) {
+              sparkle(x + 20 + rand(i, j, 800 + k) * (w - 40), y + 20 + rand(i, j, 820 + k) * (h - 40), 4 + rand(i, j, 840 + k) * 4, 0.85);
+            }
+            continue;
+          }
+
+          if (z === 'forest' || z === 'park') {
+            cellTrees(i, j, z, x, y, w, h);
+          } else if (z === 'meadow') {
+            const dots = ['#ffd93b', '#ff8fc2', '#ffffff'];
+            for (let k = 0; k < 6; k++) {
+              ctx.fillStyle = dots[k % 3];
+              disc(x + rand(i, j, 600 + k) * w, y + rand(i, j, 700 + k) * h, 1.7);
+            }
+            cellTrees(i, j, z, x, y, w, h);
+            if (rand(i, j, 70) < 0.05) {                // the odd farmhouse
+              ctx.fillStyle = BUILDING[0]; ctx.strokeStyle = C.buildingEdge; ctx.lineWidth = 1;
+              rr(x + w / 2 - 12, y + h / 2 - 9, 24, 18, 2); ctx.fill(); if (outline) ctx.stroke();
+            }
+          } else if (z === 'town') {
+            const cx = (i + 0.5) * S, cy = (j + 0.5) * S;
+            const skip = 0.2 + 0.4 * Math.min(1, Math.hypot(cx - TOWN.x, cy - TOWN.y) / TOWN.r);
+            ctx.strokeStyle = C.buildingEdge; ctx.lineWidth = 1;
+            const lw = (w - 2 * m - 6) / 2, lh = (h - 2 * m - 6) / 2;
+            for (let k = 0; k < 4; k++) {
+              if (rand(i, j, 10 + k) < skip) continue;
+              const fw = 0.8 + 0.2 * rand(i, j, 110 + k), fh = 0.8 + 0.2 * rand(i, j, 130 + k);
+              const bx = x + m + (k % 2) * (lw + 6), by = y + m + Math.floor(k / 2) * (lh + 6);
+              const rx = bx + lw * (1 - fw) / 2, ry = by + lh * (1 - fh) / 2, rw = lw * fw, rh = lh * fh;
+              ctx.fillStyle = BUILDING[Math.floor(rand(i, j, 150 + k) * 3)];
+              rr(rx, ry, rw, rh, 2);
+              ctx.fill();
+              if (outline) {
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,.7)';           // glass shine on the top half
+                ctx.fillRect(rx + 1, ry + 1, rw - 2, rh * 0.42);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Pass 3: the special places
+    function drawSpecials() {
+      // Statue plaza
+      {
+        const { x, y, w, h } = cellRect(PLAZA[0], PLAZA[1]);
+        const cx = x + w / 2, cy = y + h / 2;
+        ctx.beginPath(); ctx.arc(cx, cy, 60, 0, TAU);
+        ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.strokeStyle = '#bfe6f5'; ctx.lineWidth = 1.5; ctx.stroke();
+        const flowers = ['#ff6fa5', '#ffd93b', '#ff9a3d'];
+        for (let k = 0; k < 16; k++) {
+          const a = k / 16 * TAU;
+          ctx.fillStyle = flowers[k % 3]; disc(cx + Math.cos(a) * 44, cy + Math.sin(a) * 44, 3.2);
+        }
+        ctx.beginPath(); ctx.arc(cx, cy, 30, 0, TAU);
+        ctx.fillStyle = '#d7f0ff'; ctx.fill(); ctx.strokeStyle = '#a9d9ee'; ctx.stroke();
+        ctx.fillStyle = '#a98467';
+        for (const [bx, by] of [[-52, 0], [52, 0], [0, -52], [0, 52]]) ctx.fillRect(cx + bx - 5, cy + by - 2, 10, 4);
+        ctx.fillStyle = '#c6d9e6'; ctx.strokeStyle = '#8fb3c9';
+        ctx.fillRect(cx - 9, cy - 9, 18, 18); ctx.strokeRect(cx - 9, cy - 9, 18, 18);
+        ctx.fillStyle = '#1f9aa8';
+        disc(cx, cy - 4, 3.5);
+        ctx.beginPath(); ctx.moveTo(cx - 5, cy + 6); ctx.lineTo(cx - 3, cy - 1); ctx.lineTo(cx + 3, cy - 1); ctx.lineTo(cx + 5, cy + 6); ctx.closePath(); ctx.fill();
+      }
+      // Pond in the park
+      {
+        const { x, y, w, h } = cellRect(POND[0], POND[1]);
+        const cx = x + w / 2, cy = y + h / 2;
+        ctx.fillStyle = C.park; ctx.fillRect(x - 0.5, y - 0.5, w + 1, h + 1);     // clear trees from the middle of the park
+        ctx.beginPath(); ctx.ellipse(cx, cy, w * 0.37, h * 0.31, 0, 0, TAU);
+        ctx.strokeStyle = '#fff8dc'; ctx.lineWidth = 6; ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(cx, cy, w * 0.3, h * 0.24, 0, 0, TAU);
+        ctx.fillStyle = C.water; ctx.fill(); ctx.strokeStyle = '#9fe6ff'; ctx.lineWidth = 2; ctx.stroke();
+        sparkle(cx - w * 0.1, cy - h * 0.08, 6, 0.9); sparkle(cx + w * 0.12, cy + h * 0.07, 4, 0.8);
+        ctx.fillStyle = '#a98467';
+        ctx.fillRect(cx - w * 0.37 - 2, cy - 5, 4, 10);
+        ctx.fillRect(cx + w * 0.37 - 2, cy - 5, 4, 10);
+        ctx.fillRect(cx - 5, cy + h * 0.31 - 2, 10, 4);
+      }
+      // Cabin in a forest clearing
+      {
+        const { x, y, w, h } = cellRect(CABIN[0], CABIN[1]);
+        const cx = x + w / 2, cy = y + h / 2;
+        ctx.beginPath(); ctx.arc(cx, cy, Math.min(w, h) * 0.4, 0, TAU);
+        ctx.fillStyle = '#c4f08f'; ctx.fill(); ctx.strokeStyle = '#aee67a'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = '#a47c55'; ctx.strokeStyle = '#7d5b3b'; ctx.lineWidth = 1;
+        ctx.fillRect(cx - 11, cy - 8, 22, 16); ctx.strokeRect(cx - 11, cy - 8, 22, 16);
+        ctx.fillStyle = '#8a5f3c'; ctx.fillRect(cx - 11, cy - 8, 22, 8);
+        ctx.fillStyle = '#f28b30'; disc(cx + 22, cy + 12, 3);
+      }
+    }
+
+    // --- Roads and labels ---
+    function line(x1, y1, x2, y2, kind, pass) {
+      ctx.beginPath();
+      ctx.moveTo(x1 - ox, y1 - oy);
+      ctx.lineTo(x2 - ox, y2 - oy);
+      ctx.strokeStyle = pass === 'edge' ? ROAD_EDGE[kind] : ROAD_FILL[kind];
+      ctx.lineWidth = ROAD_W[kind][pass];
+      ctx.stroke();
+    }
+
+    function drawRoads(i0, i1, j0, j1, kind, pass) {
+      ctx.lineCap = 'round';
+      for (let i = i0; i <= i1 + 1; i++) {
+        for (let j = j0; j <= j1 + 1; j++) {
+          if (segV(i, j) === kind) line(roadX(i), roadY(j), roadX(i), roadY(j + 1), kind, pass);
+          if (segH(i, j) === kind) line(roadX(i), roadY(j), roadX(i + 1), roadY(j), kind, pass);
+        }
+      }
+    }
+
+    function label(text, mx, my, angle, font, color, halo, maxLen, haloW) {
+      ctx.font = font;
+      if (maxLen && ctx.measureText(text).width > maxLen) return;
+      ctx.save();
+      ctx.translate(mx - ox, my - oy);
+      ctx.rotate(angle);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (halo) {
+        ctx.lineJoin = 'round'; ctx.lineWidth = haloW || 3; ctx.strokeStyle = halo;
+        ctx.strokeText(text, 0, 0);
+      }
+      ctx.fillStyle = color;
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    }
+
+    function drawLabels(i0, i1, j0, j1) {
+      if (zoom >= 0.7) {
+        const roadFont = '500 10px "Segoe UI", Frutiger, "Myriad Pro", "Helvetica Neue", Arial, sans-serif';
+        for (let i = i0; i <= i1; i++) {
+          for (let j = j0; j <= j1; j++) {
+            const kv = segV(i, j), kh = segH(i, j);
+            if (kv === 0 && rand(i, j, 6) < 0.45) {
+              const y1 = roadY(j), y2 = roadY(j + 1);
+              label(roadName(i, 40), roadX(i), (y1 + y2) / 2, -Math.PI / 2, roadFont, C.text, null, y2 - y1 - 28);
+            }
+            if (kv === 1 && rand(i, j, 6) < 0.3) {
+              const y1 = roadY(j), y2 = roadY(j + 1);
+              label('Old North Rd', roadX(i), (y1 + y2) / 2, -Math.PI / 2, roadFont, '#a86a00', null, y2 - y1 - 28);
+            }
+            if (kh === 0 && rand(i, j, 7) < 0.45) {
+              const x1 = roadX(i), x2 = roadX(i + 1);
+              label(roadName(j, 41), (x1 + x2) / 2, roadY(j), 0, roadFont, C.text, null, x2 - x1 - 28);
+            }
+            if (kh === 1 && rand(i, j, 7) < 0.3) {
+              const x1 = roadX(i), x2 = roadX(i + 1);
+              label('Kings Highway', (x1 + x2) / 2, roadY(j), 0, roadFont, '#a86a00', null, x2 - x1 - 28);
+            }
+            if (zoom >= 0.9 && zoneOf(i, j) === 'town' && rand(i, j, 30) < 0.12) {
+              const [cx, cy] = cellMid(i, j);
+              const poi = pick(POIS, i, j, 31);
+              ctx.beginPath(); ctx.arc(cx - ox, cy - oy, 5.5, 0, TAU);
+              ctx.fillStyle = poi.c; ctx.fill();
+              ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+              label(poi.n, cx, cy + 16, 0, '400 10px "Segoe UI", Frutiger, "Myriad Pro", "Helvetica Neue", Arial, sans-serif', poi.c, 'rgba(255,255,255,.92)');
+            }
+          }
+        }
+      }
+      // Place names stay the same size on screen at every zoom level
+      for (const l of LANDMARKS) {
+        label(l.name, l.at[0], l.at[1] + l.dy + (l.belowPin ? 12 / zoom : 0), 0, `${l.font} ${l.size / zoom}px "Segoe UI", Frutiger, "Myriad Pro", "Helvetica Neue", Arial, sans-serif`, l.color, l.halo, 0, 3 / zoom);
+      }
+    }
+
+    // Keep the middle of the screen on the island
+    const LIMIT = R * 0.9;
+    function clampView() {
+      let cx = ox + W / (2 * zoom), cy = oy + H / (2 * zoom);
+      const d = Math.hypot(cx, cy);
+      if (d > LIMIT) {
+        cx *= LIMIT / d; cy *= LIMIT / d;
+        ox = cx - W / (2 * zoom);
+        oy = cy - H / (2 * zoom);
+      }
+    }
+
+    // --- Aero extras: sparkles, bubbles and the sea ---
+    function sparkle(x, y, r, a) {
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      ctx.beginPath();
+      ctx.moveTo(x, y - r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.quadraticCurveTo(x, y, x, y + r);
+      ctx.quadraticCurveTo(x, y, x - r, y);
+      ctx.quadraticCurveTo(x, y, x, y - r);
+      ctx.fill();
+    }
+
+    function bubble(x, y, r) {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU);
+      ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.beginPath(); ctx.ellipse(x - r * 0.35, y - r * 0.4, r * 0.28, r * 0.16, -0.6, 0, TAU); ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,.5)';
+      ctx.beginPath(); ctx.arc(x, y, r * 0.72, 0.25 * Math.PI, 0.75 * Math.PI); ctx.stroke();
+    }
+
+    function drawSea(vw, vh) {
+      const g = ctx.createLinearGradient(0, 0, 0, vh);
+      g.addColorStop(0, '#18a2e8'); g.addColorStop(0.5, '#3cc4f0'); g.addColorStop(1, '#7fe6f6');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, vw, vh);
+
+      const G = 150;                                  // bubbles and sparkles on a loose grid
+      for (let gx = Math.floor(ox / G) - 1; gx <= Math.ceil((ox + vw) / G) + 1; gx++) {
+        for (let gy = Math.floor(oy / G) - 1; gy <= Math.ceil((oy + vh) / G) + 1; gy++) {
+          const r = rand(gx, gy, 900);
+          if (r > 0.45) continue;
+          const wx = (gx + rand(gx, gy, 901)) * G, wy = (gy + rand(gx, gy, 902)) * G;
+          if (Math.hypot(wx, wy) < R + 10) continue;
+          if (r < 0.25) bubble(wx - ox, wy - oy, 5 + rand(gx, gy, 903) * 16);
+          else sparkle(wx - ox, wy - oy, 5 + rand(gx, gy, 904) * 7, 0.8);
+        }
+      }
+    }
+
+    // --- Red map pins (same size on screen at every zoom level) ---
+    const PIN_KEYS = ['cabin ranger', 'statue plaza', 'lake water'];
+    const PINS = PIN_KEYS.map(k => LANDMARKS.find(l => l.key === k));
+
+    function drawPin(mapX, mapY) {
+      ctx.save();
+      ctx.translate(mapX - ox, mapY - oy);
+      ctx.scale(1 / zoom, 1 / zoom);
+
+      ctx.fillStyle = 'rgba(0,0,0,.28)';                       // shadow on the ground
+      ctx.beginPath(); ctx.ellipse(0, 0, 6, 2.5, 0, 0, TAU); ctx.fill();
+
+      ctx.beginPath();                                          // teardrop body, tip at (0, 0)
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(-4, -10, -13, -17, -13, -26);
+      ctx.arc(0, -26, 13, Math.PI, TAU);
+      ctx.bezierCurveTo(13, -17, 4, -10, 0, 0);
+      ctx.closePath();
+      const body = ctx.createLinearGradient(-13, -39, 13, -4);
+      body.addColorStop(0, '#ff8a7a'); body.addColorStop(0.5, '#f2382b'); body.addColorStop(1, '#c4180d');
+      ctx.fillStyle = body; ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = '#a8120b'; ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,.95)';                  // white centre
+      ctx.beginPath(); ctx.arc(0, -26, 5, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.6)';                   // gloss
+      ctx.beginPath(); ctx.ellipse(-6, -32, 3.5, 6.5, 0.5, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+
+    function draw() {
+      clampView();
+      ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
+      const vw = W / zoom, vh = H / zoom;
+
+      // Sea, shallows and beach
+      drawSea(vw, vh);
+      ctx.beginPath(); ctx.arc(-ox, -oy, R + 34, 0, TAU); ctx.fillStyle = C.shallow; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.stroke();               // outer foam
+      ctx.beginPath(); ctx.arc(-ox, -oy, R + 12, 0, TAU); ctx.fillStyle = C.sand; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke();              // foam on the beach
+
+      // Land
+      ctx.save();
+      ctx.beginPath(); ctx.arc(-ox, -oy, R, 0, TAU); ctx.clip();
+
+      const i0 = Math.floor(ox / S) - 2, i1 = Math.ceil((ox + vw) / S) + 1;
+      const j0 = Math.floor(oy / S) - 2, j1 = Math.ceil((oy + vh) / S) + 1;
+
+      drawGround(i0, i1, j0, j1);
+      drawFeatures(i0, i1, j0, j1);
+      drawSpecials();
+      for (let k = 0; k < 3; k++) drawRoads(i0, i1, j0, j1, k, 'edge');
+      for (let k = 0; k < 3; k++) drawRoads(i0, i1, j0, j1, k, 'fill');
+      drawLabels(i0, i1, j0, j1);
+      ctx.restore();
+
+      // Soft sunlight glow from the top-left corner
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const glow = ctx.createRadialGradient(W * 0.1, -H * 0.05, 0, W * 0.1, -H * 0.05, Math.max(W, H) * 0.9);
+      glow.addColorStop(0, 'rgba(255,255,255,.45)'); glow.addColorStop(0.5, 'rgba(255,255,255,.08)'); glow.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+
+      ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
+      for (const pin of PINS) drawPin(pin.at[0], pin.at[1]);
+    }
+
+    // Scale bar (1 metre = 1.4 map pixels at zoom 1)
+    const bar = document.getElementById('bar');
+    function updateScale() {
+      const pxPerM = 1.4 * zoom;
+      let d = 10;
+      for (const o of [10, 20, 50, 100, 200, 500]) if (o * pxPerM <= 110) d = o;
+      bar.style.width = d * pxPerM + 'px';
+      bar.textContent = d + ' m';
+    }
+
+    // Zoom in or out while keeping the point (cx, cy) on screen in place
+    function zoomAt(factor, cx, cy) {
+      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * factor));
+      const mapX = ox + cx / zoom, mapY = oy + cy / zoom;
+      zoom = newZoom;
+      ox = mapX - cx / zoom;
+      oy = mapY - cy / zoom;
+      updateScale();
+      draw();
+    }
+
+    function centreOn(mapX, mapY) {
+      ox = mapX - W / (2 * zoom);
+      oy = mapY - H / (2 * zoom);
+      draw();
+    }
+
+    function resize() {
+      dpr = window.devicePixelRatio || 1;
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      draw();
+    }
+
+    // Drag to move, two fingers to pinch-zoom
+    const pointers = new Map();
+    let lastDist = 0;
+
+    function pointerDistance() {
+      const [a, b] = [...pointers.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    }
+
+    canvas.addEventListener('pointerdown', e => {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      canvas.setPointerCapture(e.pointerId);
+      canvas.classList.add('dragging');
+      if (pointers.size === 2) lastDist = pointerDistance();
+    });
+
+    canvas.addEventListener('pointermove', e => {
+      const p = pointers.get(e.pointerId);
+      if (!p) return;
+
+      if (pointers.size === 2) {
+        p.x = e.clientX; p.y = e.clientY;
+        const [a, b] = [...pointers.values()];
+        const dist = pointerDistance();
+        zoomAt(dist / lastDist, (a.x + b.x) / 2, (a.y + b.y) / 2);
+        lastDist = dist;
+        return;
+      }
+
+      ox -= (e.clientX - p.x) / zoom;
+      oy -= (e.clientY - p.y) / zoom;
+      p.x = e.clientX; p.y = e.clientY;
+      draw();
+    });
+
+    function endPointer(e) {
+      pointers.delete(e.pointerId);
+      if (pointers.size === 0) canvas.classList.remove('dragging');
+    }
+    canvas.addEventListener('pointerup', endPointer);
+    canvas.addEventListener('pointercancel', endPointer);
+
+    // Scroll to move. Ctrl + scroll (or a trackpad pinch) to zoom.
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      if (e.ctrlKey || e.metaKey) {
+        zoomAt(Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
+      } else {
+        ox += e.deltaX / zoom;
+        oy += e.deltaY / zoom;
+        draw();
+      }
+    }, { passive: false });
+
+    // Buttons
+    document.getElementById('zin').addEventListener('click', () => zoomAt(1.25, W / 2, H / 2));
+    document.getElementById('zout').addEventListener('click', () => zoomAt(0.8, W / 2, H / 2));
+    document.getElementById('locate').addEventListener('click', () => centreOn(statue.at[0], statue.at[1]));
+
+    // Search jumps to a place (or a random one if nothing matches)
+    document.getElementById('search').addEventListener('submit', e => {
+      e.preventDefault();
+      const input = document.getElementById('q');
+      const q = input.value.trim().toLowerCase();
+      let target = q && LANDMARKS.find(l => l.name.toLowerCase().includes(q) || l.key.includes(q));
+      if (!target) target = LANDMARKS[Math.floor(Math.random() * LANDMARKS.length)];
+      centreOn(target.at[0], target.at[1]);
+      input.blur();
+    });
+
+    window.addEventListener('resize', resize);
+    if (document.fonts) document.fonts.ready.then(draw);
+    resize();
+    updateScale();
+    centreOn(statue.at[0], statue.at[1]);
+  </script>
+</body>
+</html>
